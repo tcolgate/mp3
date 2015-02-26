@@ -2,23 +2,19 @@ package mp3
 
 import (
 	"bytes"
-	"log"
+
+	"github.com/tcolgate/mp3/internal/data"
 )
 
 var (
-	// SilentBytes is the raw data from a 128 Kb/s of lame encoded nothingness
-	SilentBytes []byte
 	// SilentFrame is the sound of Ripley screaming on the Nostromo, from the outside
 	SilentFrame *Frame
+	SilentBytes []byte
 )
 
 //go:generate go-bindata -pkg mp3 -nomemcopy ./data
 func init() {
-	var err error
-	SilentBytes, err = Asset("data/silent_1frame.mp3")
-	if err != nil {
-		log.Fatalf("Could not open silent_1frame.mp3 asset")
-	}
+	SilentBytes = data.SilentBytes
 
 	dec := NewDecoder(bytes.NewBuffer(SilentBytes))
 	frame := Frame{}
