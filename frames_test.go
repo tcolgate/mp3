@@ -17,7 +17,7 @@ func BenchmarkDecode(t *testing.B) {
 	d.Decode(&f)
 }
 
-func ExampleDecode() {
+func ExampleDecoder_Decode() {
 	r, err := os.Open("file.mp3")
 	if err != nil {
 		fmt.Println(err)
