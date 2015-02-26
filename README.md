@@ -2,4 +2,5 @@ MP3
 
 Stream orientated mp3 frame decoder
 
-http://godoc.org/github.com/tcolgate/mp3
+[![GoDoc](https://godoc.org/github.com/tcolgate/mp3?status.svg)](https://godoc.org/github.com/tcolgate/mp3)
+
