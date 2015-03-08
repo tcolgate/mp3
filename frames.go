@@ -150,7 +150,7 @@ func (d *Decoder) Decode(v *Frame) error {
 
 	// locate a sync frame
 
-	c, err := d.src.Read(v.buf)
+	c, err := io.ReadFull(d.src, v.buf)
 	switch {
 	case err != nil:
 		return err
@@ -176,10 +176,10 @@ func (d *Decoder) Decode(v *Frame) error {
 		case v.buf[1] == 0xFF:
 			v.buf[0] = v.buf[1]
 			skipped++
-			_, err = d.src.Read(v.buf[1:])
+			_, err = io.ReadFull(d.src, v.buf[1:])
 		default:
 			skipped += 2
-			_, err = d.src.Read(v.buf)
+			_, err = io.ReadFull(d.src, v.buf)
 		}
 		if err != nil {
 			if skipped != 0 {
@@ -196,7 +196,7 @@ func (d *Decoder) Decode(v *Frame) error {
 	if v.Header().Protection() {
 		crcLen = 2
 		v.buf = append(v.buf, make([]byte, crcLen)...)
-		c, err = d.src.Read(v.buf[hLen : hLen+crcLen])
+		c, err = io.ReadFull(d.src, v.buf[hLen:hLen+crcLen])
 		if c != crcLen {
 			return ErrPrematureEOF
 		}
@@ -205,7 +205,7 @@ func (d *Decoder) Decode(v *Frame) error {
 	sideLen := v.SideInfoLength()
 	v.buf = append(v.buf, make([]byte, sideLen)...)
 
-	c, err = d.src.Read(v.buf[hLen+crcLen : hLen+crcLen+sideLen])
+	c, err = io.ReadFull(d.src, v.buf[hLen+crcLen:hLen+crcLen+sideLen])
 	if c != sideLen {
 		return ErrPrematureEOF
 	}
@@ -214,7 +214,7 @@ func (d *Decoder) Decode(v *Frame) error {
 	v.buf = append(v.buf, make([]byte, dataLen-len(v.buf))...)
 	v.buf = v.buf[0:dataLen]
 
-	c, err = d.src.Read(v.buf[hLen+crcLen+sideLen : dataLen])
+	c, err = io.ReadFull(d.src, v.buf[hLen+crcLen+sideLen:dataLen])
 	if c != dataLen-hLen-sideLen-crcLen {
 		return ErrPrematureEOF
 	}
@@ -262,9 +262,7 @@ func (f *Frame) CRC() uint16 {
 		return 0
 	}
 	crcdata := bytes.NewReader(f.buf[4:6])
-	log.Println(f.buf[4:6])
 	err := binary.Read(crcdata, binary.BigEndian, &crc)
-	log.Println(err)
 	return crc
 }
 
