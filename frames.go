@@ -262,7 +262,9 @@ func (f *Frame) CRC() uint16 {
 		return 0
 	}
 	crcdata := bytes.NewReader(f.buf[4:6])
+	log.Println(f.buf[4:6])
 	err := binary.Read(crcdata, binary.BigEndian, &crc)
+	log.Println(err)
 	return crc
 }
 
