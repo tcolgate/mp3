@@ -8,13 +8,13 @@ import (
 )
 
 func BenchmarkDecode(t *testing.B) {
-	// I suspect the compiler is actually just eliding
-	// this
-	r := bytes.NewReader(SilentBytes)
-	d := NewDecoder(r)
+	for i := 0; i < t.N; i++ {
+		r := bytes.NewReader(SilentBytes)
+		d := NewDecoder(r)
 
-	f := Frame{}
-	d.Decode(&f)
+		f := Frame{}
+		d.Decode(&f)
+	}
 }
 
 func ExampleDecoder_Decode() {
