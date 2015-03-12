@@ -1,17 +1,15 @@
 package mp3
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"testing"
 )
 
 func BenchmarkDecode(t *testing.B) {
+	r := MakeSilence()
+	d := NewDecoder(r)
 	for i := 0; i < t.N; i++ {
-		r := bytes.NewReader(SilentBytes)
-		d := NewDecoder(r)
-
 		f := Frame{}
 		d.Decode(&f)
 	}

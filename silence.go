@@ -2,6 +2,7 @@ package mp3
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/tcolgate/mp3/internal/data"
 )
@@ -20,4 +21,24 @@ func init() {
 	frame := Frame{}
 	SilentFrame = &frame
 	dec.Decode(&frame)
+}
+
+type silenceReader struct {
+	int // Location into the silence frame
+}
+
+func (s *silenceReader) Read(out []byte) (int, error) {
+	for i := 0; i < len(out); i++ {
+		out[i] = SilentBytes[s.int]
+		s.int += 1
+		if s.int >= len(SilentBytes) {
+			s.int = 0
+		}
+	}
+
+	return len(out), nil
+}
+
+func MakeSilence() io.Reader {
+	return &silenceReader{0}
 }
