@@ -27,6 +27,10 @@ type silenceReader struct {
 	int // Location into the silence frame
 }
 
+func (s *silenceReader) Close() error {
+	return nil
+}
+
 func (s *silenceReader) Read(out []byte) (int, error) {
 	for i := 0; i < len(out); i++ {
 		out[i] = SilentBytes[s.int]
@@ -39,6 +43,6 @@ func (s *silenceReader) Read(out []byte) (int, error) {
 	return len(out), nil
 }
 
-func MakeSilence() io.Reader {
+func MakeSilence() io.ReadCloser {
 	return &silenceReader{0}
 }
