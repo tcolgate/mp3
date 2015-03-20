@@ -138,54 +138,63 @@ func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{r, nil}
 }
 
+// fill slice d until it is of len l, using bytes from reader r
+func fillbuf(d []byte, r io.Reader, l int) (res []byte, err error) {
+	if len(d) >= l {
+		// we already have enough bytes
+		return d, nil
+	}
+
+	// How many bytes do we need to fetch
+	missing := l - len(d)
+
+	// Does d have sufficient capacity? if not extent it
+	if cap(d) < l {
+		if d == nil {
+			d = make([]byte, l)
+		} else {
+			il := len(d)
+			d = d[:cap(d)] // stretch d to it's full capacity
+			d = append(d, make([]byte, l-cap(d))...)
+			d = d[:il] //we've extended the capm reset len
+		}
+	}
+
+	d = d[:l]
+	_, err = io.ReadFull(r, d[len(d)-missing:])
+
+	return d, err
+}
+
 // Decode reads the next complete discovered frame into the provided
 // Frame struct.
-func (d *Decoder) Decode(v *Frame) error {
+func (d *Decoder) Decode(v *Frame) (err error) {
+	// Truncate the array
+	v.buf = v.buf[:0]
+
 	hLen := 4
-	if v.buf == nil {
-		v.buf = make([]byte, hLen)
-	} else {
-		v.buf = v.buf[:hLen]
-	}
-
 	// locate a sync frame
-
-	c, err := io.ReadFull(d.src, v.buf)
-	switch {
-	case err != nil:
-		return err
-	case c != 4:
-		return ErrPrematureEOF
-	}
-
 	skipped := 0
-	found := false
 	for {
+		v.buf, err = fillbuf(v.buf, d.src, hLen)
+		if err != nil {
+			return err
+		}
 		if v.buf[0] == 0xFF && (v.buf[1]&0xE0 == 0xE0) &&
 			v.Header().Emphasis() != EmphReserved &&
 			v.Header().Layer() != LayerReserved &&
 			v.Header().Version() != MPEGReserved &&
 			v.Header().SampleRate() != -1 &&
 			v.Header().BitRate() != -1 {
-			found = true
-		}
-		if found {
 			break
 		}
 		switch {
 		case v.buf[1] == 0xFF:
-			v.buf[0] = v.buf[1]
+			v.buf = v.buf[1:]
 			skipped++
-			_, err = io.ReadFull(d.src, v.buf[1:])
 		default:
+			v.buf = v.buf[2:]
 			skipped += 2
-			_, err = io.ReadFull(d.src, v.buf)
-		}
-		if err != nil {
-			if skipped != 0 {
-				log.Printf("Skipped %v bytes\n", skipped)
-			}
-			return err
 		}
 	}
 	if skipped != 0 {
@@ -195,28 +204,22 @@ func (d *Decoder) Decode(v *Frame) error {
 	crcLen := 0
 	if v.Header().Protection() {
 		crcLen = 2
-		v.buf = append(v.buf, make([]byte, crcLen)...)
-		c, err = io.ReadFull(d.src, v.buf[hLen:hLen+crcLen])
-		if c != crcLen {
-			return ErrPrematureEOF
+		v.buf, err = fillbuf(v.buf, d.src, hLen+crcLen)
+		if err != nil {
+			return err
 		}
 	}
 
 	sideLen := v.SideInfoLength()
-	v.buf = append(v.buf, make([]byte, sideLen)...)
-
-	c, err = io.ReadFull(d.src, v.buf[hLen+crcLen:hLen+crcLen+sideLen])
-	if c != sideLen {
-		return ErrPrematureEOF
+	v.buf, err = fillbuf(v.buf, d.src, hLen+crcLen+sideLen)
+	if err != nil {
+		return err
 	}
 
 	dataLen := v.Size()
-	v.buf = append(v.buf, make([]byte, dataLen-len(v.buf))...)
-	v.buf = v.buf[0:dataLen]
-
-	c, err = io.ReadFull(d.src, v.buf[hLen+crcLen+sideLen:dataLen])
-	if c != dataLen-hLen-sideLen-crcLen {
-		return ErrPrematureEOF
+	v.buf, err = fillbuf(v.buf, d.src, dataLen)
+	if err != nil {
+		return err
 	}
 
 	return nil
