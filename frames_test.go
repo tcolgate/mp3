@@ -9,8 +9,9 @@ import (
 func BenchmarkDecode(t *testing.B) {
 	r := MakeSilence()
 	d := NewDecoder(r)
+	f := Frame{}
 	for i := 0; i < t.N; i++ {
-		f := Frame{}
+		t.SetBytes(int64(len(f.buf)))
 		d.Decode(&f)
 	}
 }
