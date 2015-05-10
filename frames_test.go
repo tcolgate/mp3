@@ -10,6 +10,8 @@ func BenchmarkDecode(t *testing.B) {
 	r := MakeSilence()
 	d := NewDecoder(r)
 	f := Frame{}
+
+	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
 		t.SetBytes(int64(len(f.buf)))
 		d.Decode(&f)
