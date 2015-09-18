@@ -48,6 +48,7 @@ const (
 	MPEGReserved
 	MPEG2
 	MPEG1
+	VERSIONMAX
 )
 
 //go:generate stringer -type=FrameLayer
@@ -56,6 +57,7 @@ const (
 	Layer3
 	Layer2
 	Layer1
+	LayerMax
 )
 
 //go:generate stringer -type=FrameEmphasis
@@ -64,6 +66,7 @@ const (
 	Emph5015
 	EmphReserved
 	EmphCCITJ17
+	EmphMax
 )
 
 //go:generate stringer -type=FrameChannelMode
@@ -72,6 +75,7 @@ const (
 	JointStereo
 	DualChannel
 	SingleChannel
+	ChannelModeMax
 )
 
 const (
@@ -80,45 +84,69 @@ const (
 )
 
 var (
-	bitrates = map[FrameVersion]map[FrameLayer][15]int{
-		MPEG1: { // MPEG 1
-			Layer1: {0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448}, // Layer1
-			Layer2: {0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384},    // Layer2
-			Layer3: {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320},     // Layer3
+	bitrates = [VERSIONMAX][LayerMax][15]int{
+		{ // MPEG 2.5
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                       // LayerReserved
+			{0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160},      // Layer3
+			{0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160},      // Layer2
+			{0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256}, // Layer1
 		},
-		MPEG2: { // MPEG 2, 2.5
-			Layer1: {0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256}, // Layer1
-			Layer2: {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160},      // Layer2
-			Layer3: {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160},      // Layer3
+		{ // Reserved
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // LayerReserved
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // Layer3
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // Layer2
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // Layer1
+		},
+		{ // MPEG 2
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                       // LayerReserved
+			{0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160},      // Layer3
+			{0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160},      // Layer2
+			{0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256}, // Layer1
+		},
+		{ // MPEG 1
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                          // LayerReserved
+			{0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320},     // Layer3
+			{0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384},    // Layer2
+			{0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448}, // Layer1
 		},
 	}
-	sampleRates = map[FrameVersion][3]int{
-		MPEG1:        {44100, 48000, 32000},
-		MPEG2:        {22050, 24000, 16000},
-		MPEG25:       {11025, 12000, 8000},
-		MPEGReserved: {0, 0, 0},
+	sampleRates = [int(VERSIONMAX)][3]int{
+		{11025, 12000, 8000},  //MPEG25
+		{0, 0, 0},             //MPEGReserved
+		{22050, 24000, 16000}, //MPEG2
+		{44100, 48000, 32000}, //MPEG1
 	}
 
 	// ErrInvalidSampleRate indicates that no samplerate could be found for the frame header provided
 	ErrInvalidSampleRate = FrameSampleRate(-1)
 
-	samplesPerFrame = map[FrameVersion]map[FrameLayer]int{
-		MPEG1: {
-			Layer1: 384,
-			Layer2: 1152,
-			Layer3: 1152,
+	samplesPerFrame = [VERSIONMAX][LayerMax]int{
+		{ // MPEG25
+			576,
+			1152,
+			384,
 		},
-		MPEG2: {
-			Layer1: 384,
-			Layer2: 1152,
-			Layer3: 576,
+		{ // Reserved
+			0,
+			0,
+			0,
+		},
+		{ // MPEG2
+			576,
+			1152,
+			384,
+		},
+		{ // MPEG1
+			1152,
+			1152,
+			384,
 		},
 	}
-	slotSize = map[FrameLayer]int{
-		LayerReserved: 0,
-		Layer3:        1,
-		Layer2:        1,
-		Layer1:        4,
+	slotSize = [LayerMax]int{
+		0, //	LayerReserved
+		1, //	Layer3
+		1, //	Layer2
+		4, //	Layer1
 	}
 
 	// ErrNoSyncBits implies we could not find a valid frame header sync bit before EOF

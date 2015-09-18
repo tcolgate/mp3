@@ -7,6 +7,7 @@ import (
 )
 
 func BenchmarkDecode(t *testing.B) {
+	t.ReportAllocs()
 	r := MakeSilence()
 	d := NewDecoder(r)
 	f := Frame{}
