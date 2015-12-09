@@ -122,6 +122,7 @@ var (
 
 	samplesPerFrame = [VERSIONMAX][LayerMax]int{
 		{ // MPEG25
+			0,
 			576,
 			1152,
 			384,
@@ -130,13 +131,16 @@ var (
 			0,
 			0,
 			0,
+			0,
 		},
 		{ // MPEG2
+			0,
 			576,
 			1152,
 			384,
 		},
 		{ // MPEG1
+			0,
 			1152,
 			1152,
 			384,
