@@ -307,9 +307,8 @@ func (f *Frame) CRC() uint16 {
 func (f *Frame) SideInfo() FrameSideInfo {
 	if f.Header().Protection() {
 		return FrameSideInfo(f.buf[6:])
-	} else {
-		return FrameSideInfo(f.buf[4:])
 	}
+	return FrameSideInfo(f.buf[4:])
 }
 
 // Frame returns a string describing this frame, header and side info
