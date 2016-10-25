@@ -19,7 +19,7 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// Package mp3 provides decoding of mp3 files into thier underlying frames. It
+// Package mp3 provides decoding of mp3 files into their underlying frames. It
 // is primarily intended for streaming tasks with minimal internal buffering
 // and no requirement to seek.
 //

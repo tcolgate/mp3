@@ -410,7 +410,7 @@ func (h FrameHeader) String() string {
 
 // NDataBegin is the number of bytes before the frame header at which the sample data begins
 // 0 indicates that the data begins after the side channel information. This data is the
-// data from the "bit resevoir" and can be up to 511 bytes
+// data from the "bit reservoir" and can be up to 511 bytes
 func (i FrameSideInfo) NDataBegin() uint16 {
 	return (uint16(i[0]) << 1 & (uint16(i[1]) >> 7))
 }
