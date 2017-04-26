@@ -10,17 +10,19 @@ import (
 var (
 	// SilentFrame is the sound of Ripley screaming on the Nostromo, from the outside
 	SilentFrame *Frame
+
+	// SilentBytes is the raw raw data behind SilentFrame
 	SilentBytes []byte
 )
 
-//go:generate go-bindata -pkg mp3 -nomemcopy ./data
 func init() {
+	skipped := 0
 	SilentBytes = data.SilentBytes
 
 	dec := NewDecoder(bytes.NewBuffer(SilentBytes))
 	frame := Frame{}
 	SilentFrame = &frame
-	dec.Decode(&frame)
+	dec.Decode(&frame, &skipped)
 }
 
 type silenceReader struct {
@@ -34,7 +36,7 @@ func (s *silenceReader) Close() error {
 func (s *silenceReader) Read(out []byte) (int, error) {
 	for i := 0; i < len(out); i++ {
 		out[i] = SilentBytes[s.int]
-		s.int += 1
+		s.int++
 		if s.int >= len(SilentBytes) {
 			s.int = 0
 		}
@@ -43,6 +45,7 @@ func (s *silenceReader) Read(out []byte) (int, error) {
 	return len(out), nil
 }
 
+// MakeSilence provides a constant stream of silenct frames.
 func MakeSilence() io.ReadCloser {
 	return &silenceReader{0}
 }

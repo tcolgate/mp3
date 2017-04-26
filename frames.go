@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"time"
 )
 
@@ -199,14 +198,14 @@ func fillbuf(d []byte, r io.Reader, l int) (res []byte, err error) {
 }
 
 // Decode reads the next complete discovered frame into the provided
-// Frame struct.
-func (d *Decoder) Decode(v *Frame) (err error) {
+// Frame struct. A count of skipped bytes will be written to skipped.
+func (d *Decoder) Decode(v *Frame, skipped *int) (err error) {
 	// Truncate the array
 	v.buf = v.buf[:0]
 
 	hLen := 4
 	// locate a sync frame
-	skipped := 0
+	*skipped = 0
 	for {
 		v.buf, err = fillbuf(v.buf, d.src, hLen)
 		if err != nil {
@@ -223,14 +222,11 @@ func (d *Decoder) Decode(v *Frame) (err error) {
 		switch {
 		case v.buf[1] == 0xFF:
 			v.buf = v.buf[1:]
-			skipped++
+			*skipped++
 		default:
 			v.buf = v.buf[2:]
-			skipped += 2
+			*skipped += 2
 		}
-	}
-	if skipped != 0 {
-		log.Printf("Skipped %v bytes\n", skipped)
 	}
 
 	crcLen := 0
@@ -242,7 +238,11 @@ func (d *Decoder) Decode(v *Frame) (err error) {
 		}
 	}
 
-	sideLen := v.SideInfoLength()
+	sideLen, err := v.SideInfoLength()
+	if err != nil {
+		return err
+	}
+
 	v.buf, err = fillbuf(v.buf, d.src, hLen+crcLen+sideLen)
 	if err != nil {
 		return err
@@ -259,29 +259,28 @@ func (d *Decoder) Decode(v *Frame) (err error) {
 
 // SideInfoLength retursn the expected side info length for this
 // mp3 frame
-func (f *Frame) SideInfoLength() int {
+func (f *Frame) SideInfoLength() (int, error) {
 	switch f.Header().Version() {
 	case MPEG1:
 		switch f.Header().ChannelMode() {
 		case SingleChannel:
-			return 17
+			return 17, nil
 		case Stereo, JointStereo, DualChannel:
-			return 32
+			return 32, nil
 		default:
-			panic("Bad channel mode somehow!")
+			return 0, errors.New("bad channel mode")
 		}
 	case MPEG2, MPEG25:
 		switch f.Header().ChannelMode() {
 		case SingleChannel:
-			return 9
+			return 9, nil
 		case Stereo, JointStereo, DualChannel:
-			return 17
+			return 17, nil
 		default:
-			panic("Bad channel mode somehow!")
+			return 0, errors.New("bad channel mode")
 		}
 	default:
-		log.Println(f.Header())
-		panic("Bad version somehow!")
+		return 0, fmt.Errorf("bad version (%v)", f.Header().Version())
 	}
 }
 
@@ -291,16 +290,14 @@ func (f *Frame) Header() FrameHeader {
 }
 
 // CRC returns the CRC word stored in this frame
-func (f *Frame) CRC() uint16 {
+func (f *Frame) CRC() (uint16, error) {
 	var crc uint16
 	if !f.Header().Protection() {
-		return 0
+		return 0, nil
 	}
 	crcdata := bytes.NewReader(f.buf[4:6])
-	log.Println(f.buf[4:6])
 	err := binary.Read(crcdata, binary.BigEndian, &crc)
-	log.Println(err)
-	return crc
+	return crc, err
 }
 
 // SideInfo returns the  side info for this frame
@@ -316,7 +313,8 @@ func (f *Frame) String() string {
 	str := ""
 	str += fmt.Sprintf("Header: \n%s", f.Header())
 	str += fmt.Sprintf("SideInfo: \n%s", f.SideInfo())
-	str += fmt.Sprintf("CRC: %x\n", f.CRC())
+	crc, err := f.CRC()
+	str += fmt.Sprintf("CRC: %x (err: %v)\n", crc, err)
 	str += fmt.Sprintf("Samples: %v\n", f.Samples())
 	str += fmt.Sprintf("Size: %v\n", f.Size())
 	str += fmt.Sprintf("Duration: %v\n", f.Duration())

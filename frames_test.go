@@ -7,6 +7,7 @@ import (
 )
 
 func BenchmarkDecode(t *testing.B) {
+	skipped := 0
 	t.ReportAllocs()
 	r := MakeSilence()
 	d := NewDecoder(r)
@@ -15,11 +16,12 @@ func BenchmarkDecode(t *testing.B) {
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
 		t.SetBytes(int64(len(f.buf)))
-		d.Decode(&f)
+		d.Decode(&f, &skipped)
 	}
 }
 
 func ExampleDecoder_Decode() {
+	skipped := 0
 	r, err := os.Open("file.mp3")
 	if err != nil {
 		fmt.Println(err)
@@ -30,7 +32,7 @@ func ExampleDecoder_Decode() {
 	var f Frame
 	for {
 
-		if err := d.Decode(&f); err != nil {
+		if err := d.Decode(&f, &skipped); err != nil {
 			fmt.Println(err)
 			return
 		}
